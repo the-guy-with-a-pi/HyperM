@@ -35,7 +35,7 @@ use:
 sudo ./install.sh
 ```
 
-The installer supports Debian/Ubuntu, Fedora, and Alpine on x86_64 Linux. It
+The installer supports Debian/Ubuntu, Fedora, and Alpine on x86_64 or aarch64 Linux. It
 does not download a kernel or rootfs image because those images must be chosen
 for the guest workload and trusted by the operator. Put them at
 `/var/lib/hyperm/vmlinux` and `/var/lib/hyperm/rootfs.ext4` after installation.

@@ -17,10 +17,14 @@ if [[ "$(uname -s)" != "Linux" ]]; then
   exit 1
 fi
 
-if [[ "$(uname -m)" != "x86_64" ]]; then
-  echo "This installer currently supports Linux x86_64 only." >&2
-  exit 1
-fi
+case "$(uname -m)" in
+  x86_64) firecracker_arch="x86_64" ;;
+  aarch64|arm64) firecracker_arch="aarch64" ;;
+  *)
+    echo "This installer supports Linux x86_64 and aarch64 only. Install 64-bit Raspberry Pi OS." >&2
+    exit 1
+    ;;
+esac
 
 if [[ "$EUID" -ne 0 ]]; then
   echo "Run this installer with sudo: sudo ./install.sh" >&2
@@ -54,14 +58,14 @@ if ! command -v curl >/dev/null 2>&1 || ! command -v cargo >/dev/null 2>&1; then
   exit 1
 fi
 
-firecracker_archive="firecracker-v${FIRECRACKER_VERSION}-x86_64.tgz"
+firecracker_archive="firecracker-v${FIRECRACKER_VERSION}-${firecracker_arch}.tgz"
 firecracker_url="https://github.com/firecracker-microvm/firecracker/releases/download/v${FIRECRACKER_VERSION}/${firecracker_archive}"
 WORK_DIR="$(mktemp -d)"
 
 echo "Installing Firecracker ${FIRECRACKER_VERSION}..."
 curl --fail --location --retry 3 --output "$WORK_DIR/$firecracker_archive" "$firecracker_url"
 tar -xzf "$WORK_DIR/$firecracker_archive" -C "$WORK_DIR"
-firecracker_binary="$WORK_DIR/release-v${FIRECRACKER_VERSION}-x86_64/firecracker-v${FIRECRACKER_VERSION}-x86_64"
+firecracker_binary="$WORK_DIR/release-v${FIRECRACKER_VERSION}-${firecracker_arch}/firecracker-v${FIRECRACKER_VERSION}-${firecracker_arch}"
 if [[ ! -f "$firecracker_binary" ]]; then
   echo "Firecracker archive layout was not recognized. Check the release archive manually." >&2
   exit 1
