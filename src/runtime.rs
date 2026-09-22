@@ -1,5 +1,7 @@
 use anyhow::{Context, Result};
 use serde_json::json;
+#[cfg(unix)]
+use std::fs::OpenOptions;
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -36,6 +38,7 @@ pub struct FirecrackerRuntime;
 
 impl FirecrackerRuntime {
     pub fn launch(launch: &VmLaunch) -> Result<RunningVm> {
+        Self::check_kvm_access()?;
         fs::create_dir_all(&launch.app_dir)?;
         let socket = launch.app_dir.join("firecracker.sock");
         let config_path = launch.app_dir.join("firecracker.json");
@@ -89,6 +92,20 @@ impl FirecrackerRuntime {
             return Err(error);
         }
         Ok(RunningVm { pid: child.id() })
+    }
+
+    fn check_kvm_access() -> Result<()> {
+        #[cfg(unix)]
+        {
+            OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open("/dev/kvm")
+                .context(
+                    "cannot access /dev/kvm; add your user to the kvm group, then log in again",
+                )?;
+        }
+        Ok(())
     }
 
     fn start_instance(socket: &Path, child: &mut Child, stderr_path: &Path) -> Result<()> {
