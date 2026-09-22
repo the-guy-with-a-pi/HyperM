@@ -8,7 +8,11 @@ use state::{AppRecord, StateStore};
 use std::path::PathBuf;
 
 #[derive(Parser)]
-#[command(name = "hyperm", version, about = "PM2-style Firecracker microVM manager")]
+#[command(
+    name = "hyperm",
+    version,
+    about = "PM2-style Firecracker microVM manager"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -49,9 +53,15 @@ enum Command {
         args: Vec<String>,
     },
     List,
-    Stop { name: String },
-    Delete { name: String },
-    Logs { name: String },
+    Stop {
+        name: String,
+    },
+    Delete {
+        name: String,
+    },
+    Logs {
+        name: String,
+    },
 }
 
 fn main() -> Result<()> {
@@ -62,13 +72,39 @@ fn main() -> Result<()> {
     let store = StateStore::new(home)?;
 
     match cli.command {
-        Command::Start { name, firecracker, kernel, rootfs, memory, cpus, guest_command } => {
+        Command::Start {
+            name,
+            firecracker,
+            kernel,
+            rootfs,
+            memory,
+            cpus,
+            guest_command,
+        } => {
             if guest_command.is_empty() {
                 bail!("guest command is required after --")
             }
-            launch_app(&store, name, firecracker, kernel, rootfs, memory, cpus, guest_command)?;
+            launch_app(
+                &store,
+                name,
+                firecracker,
+                kernel,
+                rootfs,
+                memory,
+                cpus,
+                guest_command,
+            )?;
         }
-        Command::Run { program, name, ram, cpus, firecracker, kernel, rootfs, args } => {
+        Command::Run {
+            program,
+            name,
+            ram,
+            cpus,
+            firecracker,
+            kernel,
+            rootfs,
+            args,
+        } => {
             let inferred_name = program
                 .file_stem()
                 .and_then(|stem| stem.to_str())
@@ -78,11 +114,26 @@ fn main() -> Result<()> {
             let app_name = name.unwrap_or(inferred_name);
             let mut guest_command = vec![program.to_string_lossy().into_owned()];
             guest_command.extend(args);
-            launch_app(&store, app_name, firecracker, kernel, rootfs, ram, cpus, guest_command)?;
+            launch_app(
+                &store,
+                app_name,
+                firecracker,
+                kernel,
+                rootfs,
+                ram,
+                cpus,
+                guest_command,
+            )?;
         }
         Command::List => {
             for app in store.list()? {
-                println!("{:<16} {:<8} vm-pid={} guest={}", app.name, app.status, app.pid, app.guest_command.join(" "));
+                println!(
+                    "{:<16} {:<8} vm-pid={} guest={}",
+                    app.name,
+                    app.status,
+                    app.pid,
+                    app.guest_command.join(" ")
+                );
             }
         }
         Command::Stop { name } => {
@@ -129,7 +180,10 @@ fn launch_app(
         firecracker,
         kernel,
         rootfs,
-        resources: VmResources { memory_mb: memory, cpus },
+        resources: VmResources {
+            memory_mb: memory,
+            cpus,
+        },
         guest_command,
         app_dir,
     };

@@ -4,14 +4,19 @@ HyperM is an open-source, PM2-style manager for running applications in isolated
 
 ## Status
 
-This is the first Rust control-plane milestone. It starts one Firecracker VM per app, writes a Firecracker configuration for each VM, persists app metadata, and exposes `start`, `list`, `logs`, `stop`, and `delete`. A Linux kernel, root filesystem, and guest-side launcher are required because a host command cannot execute directly inside a VM.
+This is the first Rust control-plane milestone. It starts one Firecracker VM per app, writes a Firecracker configuration for each VM, persists app metadata, and exposes `run`, `start`, `list`, `logs`, `stop`, and `delete`. A Linux kernel, root filesystem, and guest-side launcher are required because a host command cannot execute directly inside a VM.
 
 ## Requirements
 
+- **Supported host OS:** Linux with KVM enabled
 - Rust 1.75+
-- Linux with KVM enabled
 - Firecracker installed and available as `firecracker`
 - A compatible Linux kernel and rootfs image
+
+HyperM is designed to run on Linux server distributions such as Ubuntu,
+Debian, Fedora, and Alpine when KVM is available. Windows and macOS can be
+used for editing or compiling the CLI, but Firecracker microVMs cannot run
+there natively.
 
 ## Build
 

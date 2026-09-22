@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 description = "A lightweight PM2-style Firecracker microVM manager"
 license = "MIT"
-repository = "https://github.com/your-org/HyperM"
 
 [dependencies]
 anyhow = "1"

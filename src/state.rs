@@ -45,7 +45,11 @@ impl StateStore {
     }
 
     pub fn app_dir(&self, name: &str) -> Result<PathBuf> {
-        if name.is_empty() || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+        if name.is_empty()
+            || !name
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        {
             bail!("app name must contain only letters, numbers, '-' or '_'")
         }
         Ok(self.root.join("apps").join(name))
@@ -60,7 +64,8 @@ impl StateStore {
     }
 
     pub fn require(&self, name: &str) -> Result<AppRecord> {
-        self.get(name)?.ok_or_else(|| anyhow::anyhow!("unknown app '{name}'"))
+        self.get(name)?
+            .ok_or_else(|| anyhow::anyhow!("unknown app '{name}'"))
     }
 
     pub fn insert(&self, app: AppRecord) -> Result<()> {
@@ -71,13 +76,21 @@ impl StateStore {
 
     pub fn update(&self, app: AppRecord) -> Result<()> {
         let mut apps = self.list()?;
-        let existing = apps.iter_mut().find(|current| current.name == app.name).ok_or_else(|| anyhow::anyhow!("unknown app '{}'", app.name))?;
+        let existing = apps
+            .iter_mut()
+            .find(|current| current.name == app.name)
+            .ok_or_else(|| anyhow::anyhow!("unknown app '{}'", app.name))?;
         *existing = app;
         self.write(apps)
     }
 
     pub fn delete(&self, name: &str) -> Result<()> {
-        self.write(self.list()?.into_iter().filter(|app| app.name != name).collect())
+        self.write(
+            self.list()?
+                .into_iter()
+                .filter(|app| app.name != name)
+                .collect(),
+        )
     }
 
     fn write(&self, apps: Vec<AppRecord>) -> Result<()> {

@@ -49,12 +49,19 @@ impl FirecrackerRuntime {
         });
         fs::write(&config_path, serde_json::to_vec_pretty(&config)?)?;
         let child = Command::new(&launch.firecracker)
-            .arg("--api-sock").arg(&socket)
-            .arg("--config-file").arg(&config_path)
+            .arg("--api-sock")
+            .arg(&socket)
+            .arg("--config-file")
+            .arg(&config_path)
             .stdout(stdout)
             .stderr(stderr)
             .spawn()
-            .with_context(|| format!("failed to start Firecracker at {}", launch.firecracker.display()))?;
+            .with_context(|| {
+                format!(
+                    "failed to start Firecracker at {}",
+                    launch.firecracker.display()
+                )
+            })?;
         Ok(RunningVm { pid: child.id() })
     }
 
@@ -67,7 +74,9 @@ impl FirecrackerRuntime {
         }
         #[cfg(windows)]
         {
-            Command::new("taskkill").args(["/PID", &pid.to_string(), "/T", "/F"]).status()?;
+            Command::new("taskkill")
+                .args(["/PID", &pid.to_string(), "/T", "/F"])
+                .status()?;
         }
         Ok(())
     }
