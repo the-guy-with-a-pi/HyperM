@@ -18,6 +18,52 @@ Debian, Fedora, and Alpine when KVM is available. Windows and macOS can be
 used for editing or compiling the CLI, but Firecracker microVMs cannot run
 there natively.
 
+## Server setup
+
+The following example targets Ubuntu or Debian:
+
+```bash
+sudo apt update
+sudo apt install -y curl build-essential git ca-certificates
+
+# Install Rust and Cargo.
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
+
+# Confirm that KVM is available to the current server.
+test -e /dev/kvm && echo "KVM is available" || echo "KVM is not available"
+sudo usermod -aG kvm "$USER"
+# Log out and back in after changing the kvm group.
+
+# Install Firecracker. Replace the version with the release you want.
+export FIRECRACKER_VERSION="1.9.1"
+curl -LO "https://github.com/firecracker-microvm/firecracker/releases/download/v${FIRECRACKER_VERSION}/firecracker-v${FIRECRACKER_VERSION}-x86_64.tgz"
+tar -xzf "firecracker-v${FIRECRACKER_VERSION}-x86_64.tgz"
+sudo install -m 0755 "release-v${FIRECRACKER_VERSION}-x86_64/firecracker-v${FIRECRACKER_VERSION}-x86_64" /usr/local/bin/firecracker
+firecracker --version
+
+# Download or build a compatible Linux kernel and root filesystem image.
+sudo install -d -m 0755 /var/lib/hyperm
+sudo install -m 0644 ./vmlinux /var/lib/hyperm/vmlinux
+sudo install -m 0644 ./rootfs.ext4 /var/lib/hyperm/rootfs.ext4
+
+# Build and install HyperM.
+git clone https://github.com/YOUR_GITHUB_USERNAME/HyperM.git
+cd HyperM
+cargo install --path .
+hyperm --help
+```
+
+Replace `YOUR_GITHUB_USERNAME` with the GitHub account that will host the
+repository. The Firecracker release archive name can change between releases;
+if the download URL does not exist, use the matching Linux x86_64 archive from
+the [Firecracker releases](https://github.com/firecracker-microvm/firecracker/releases)
+page.
+
+Check the host before installing: nested virtualization or a VPS without KVM
+will not be able to start Firecracker. You can inspect the CPU virtualization
+flags with `grep -E 'vmx|svm' /proc/cpuinfo`.
+
 ## Build
 
 ```bash
