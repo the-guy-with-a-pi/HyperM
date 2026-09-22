@@ -3,7 +3,7 @@ use serde_json::json;
 use std::{
     fs,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Child, Command},
 };
 #[cfg(unix)]
 use std::{
@@ -39,8 +39,11 @@ impl FirecrackerRuntime {
         fs::create_dir_all(&launch.app_dir)?;
         let socket = launch.app_dir.join("firecracker.sock");
         let config_path = launch.app_dir.join("firecracker.json");
-        let stdout = fs::File::create(launch.app_dir.join("stdout.log"))?;
-        let stderr = fs::File::create(launch.app_dir.join("stderr.log"))?;
+        let stdout_path = launch.app_dir.join("stdout.log");
+        let stderr_path = launch.app_dir.join("stderr.log");
+        let _ = fs::remove_file(&socket);
+        let stdout = fs::File::create(&stdout_path)?;
+        let stderr = fs::File::create(&stderr_path)?;
         let config = json!({
             "boot-source": {
                 "kernel_image_path": launch.kernel,
@@ -73,17 +76,23 @@ impl FirecrackerRuntime {
                     launch.firecracker.display()
                 )
             })?;
-        if let Err(error) = Self::start_instance(&socket) {
+        if let Err(error) = Self::start_instance(&socket, &mut child, &stderr_path) {
             let _ = child.kill();
             return Err(error);
         }
         Ok(RunningVm { pid: child.id() })
     }
 
-    fn start_instance(socket: &Path) -> Result<()> {
+    fn start_instance(socket: &Path, child: &mut Child, stderr_path: &Path) -> Result<()> {
         #[cfg(unix)]
         {
             for _ in 0..50 {
+                if let Some(status) = child.try_wait()? {
+                    let details = fs::read_to_string(stderr_path).unwrap_or_default();
+                    anyhow::bail!(
+                        "Firecracker exited with {status} before opening its API socket: {details}"
+                    );
+                }
                 if let Ok(mut stream) = UnixStream::connect(socket) {
                     let request = concat!(
                         "PUT /actions HTTP/1.1\r\n",
@@ -103,11 +112,14 @@ impl FirecrackerRuntime {
                 }
                 thread::sleep(Duration::from_millis(100));
             }
-            anyhow::bail!("timed out waiting for Firecracker API socket")
+            let details = fs::read_to_string(stderr_path).unwrap_or_default();
+            anyhow::bail!("timed out waiting for Firecracker API socket: {details}")
         }
         #[cfg(not(unix))]
         {
             let _ = socket;
+            let _ = child;
+            let _ = stderr_path;
             anyhow::bail!("Firecracker runtime requires a Unix host")
         }
     }
