@@ -39,9 +39,17 @@ impl FirecrackerRuntime {
         fs::create_dir_all(&launch.app_dir)?;
         let socket = launch.app_dir.join("firecracker.sock");
         let config_path = launch.app_dir.join("firecracker.json");
+        let app_rootfs = launch.app_dir.join("rootfs.ext4");
         let stdout_path = launch.app_dir.join("stdout.log");
         let stderr_path = launch.app_dir.join("stderr.log");
         let _ = fs::remove_file(&socket);
+        fs::copy(&launch.rootfs, &app_rootfs).with_context(|| {
+            format!(
+                "failed to copy rootfs {} to {}",
+                launch.rootfs.display(),
+                app_rootfs.display()
+            )
+        })?;
         let stdout = fs::File::create(&stdout_path)?;
         let stderr = fs::File::create(&stderr_path)?;
         let config = json!({
@@ -51,7 +59,7 @@ impl FirecrackerRuntime {
             },
             "drives": [{
                 "drive_id": "rootfs",
-                "path_on_host": launch.rootfs,
+                "path_on_host": app_rootfs,
                 "is_root_device": true,
                 "is_read_only": false
             }],
