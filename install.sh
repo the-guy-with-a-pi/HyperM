@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 
 FIRECRACKER_VERSION="${FIRECRACKER_VERSION:-1.9.1}"
+KERNEL_VERSION="${HYPERM_KERNEL_VERSION:-5.10.225}"
 REPOSITORY_URL="${HYPERM_REPOSITORY:-https://github.com/the_guy_with_a_pi/HyperM.git}"
 WORK_DIR=""
 
@@ -72,6 +73,12 @@ if [[ ! -f "$firecracker_binary" ]]; then
 fi
 install -m 0755 "$firecracker_binary" /usr/local/bin/firecracker
 
+install -d -m 0755 /var/lib/hyperm
+kernel_url="${HYPERM_KERNEL_URL:-https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v${FIRECRACKER_VERSION}/${firecracker_arch}/vmlinux-${KERNEL_VERSION}}"
+echo "Installing Firecracker-compatible ${firecracker_arch} kernel..."
+curl --fail --location --retry 3 --output /var/lib/hyperm/vmlinux "$kernel_url"
+chmod 0644 /var/lib/hyperm/vmlinux
+
 if [[ -f Cargo.toml ]]; then
   source_dir="$PWD"
 else
@@ -82,7 +89,6 @@ fi
 
 echo "Building HyperM..."
 cargo install --path "$source_dir" --root /usr/local
-install -d -m 0755 /var/lib/hyperm
 
 installer_user="${SUDO_USER:-}"
 if [[ -n "$installer_user" ]] && id "$installer_user" >/dev/null 2>&1 && getent group kvm >/dev/null 2>&1; then
@@ -95,5 +101,6 @@ hyperm --help >/dev/null
 
 echo
 echo "HyperM installation complete."
-echo "Place a compatible kernel at /var/lib/hyperm/vmlinux and rootfs at /var/lib/hyperm/rootfs.ext4."
+echo "A compatible kernel was installed at /var/lib/hyperm/vmlinux."
+echo "Place a compatible rootfs at /var/lib/hyperm/rootfs.ext4 before launching an app."
 echo "Then run: hyperm run app.js --name app --ram 512"
