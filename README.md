@@ -48,14 +48,13 @@ sudo install -m 0644 ./vmlinux /var/lib/hyperm/vmlinux
 sudo install -m 0644 ./rootfs.ext4 /var/lib/hyperm/rootfs.ext4
 
 # Build and install HyperM.
-git clone https://github.com/YOUR_GITHUB_USERNAME/HyperM.git
+git clone https://github.com/the_guy_with_a_pi/HyperM.git
 cd HyperM
 cargo install --path .
 hyperm --help
 ```
 
-Replace `YOUR_GITHUB_USERNAME` with the GitHub account that will host the
-repository. The Firecracker release archive name can change between releases;
+The Firecracker release archive name can change between releases;
 if the download URL does not exist, use the matching Linux x86_64 archive from
 the [Firecracker releases](https://github.com/firecracker-microvm/firecracker/releases)
 page.
