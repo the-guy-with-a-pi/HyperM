@@ -1,6 +1,17 @@
 use anyhow::{Context, Result};
 use serde_json::json;
-use std::{fs, path::PathBuf, process::Command};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
+#[cfg(unix)]
+use std::{
+    io::{Read, Write},
+    os::unix::net::UnixStream,
+    thread,
+    time::Duration,
+};
 
 pub struct VmResources {
     pub memory_mb: u32,
@@ -48,7 +59,7 @@ impl FirecrackerRuntime {
             }
         });
         fs::write(&config_path, serde_json::to_vec_pretty(&config)?)?;
-        let child = Command::new(&launch.firecracker)
+        let mut child = Command::new(&launch.firecracker)
             .arg("--api-sock")
             .arg(&socket)
             .arg("--config-file")
@@ -62,7 +73,43 @@ impl FirecrackerRuntime {
                     launch.firecracker.display()
                 )
             })?;
+        if let Err(error) = Self::start_instance(&socket) {
+            let _ = child.kill();
+            return Err(error);
+        }
         Ok(RunningVm { pid: child.id() })
+    }
+
+    fn start_instance(socket: &Path) -> Result<()> {
+        #[cfg(unix)]
+        {
+            for _ in 0..50 {
+                if let Ok(mut stream) = UnixStream::connect(socket) {
+                    let request = concat!(
+                        "PUT /actions HTTP/1.1\r\n",
+                        "Host: localhost\r\n",
+                        "Content-Type: application/json\r\n",
+                        "Content-Length: 31\r\n",
+                        "Connection: close\r\n\r\n",
+                        "{\"action_type\":\"InstanceStart\"}"
+                    );
+                    stream.write_all(request.as_bytes())?;
+                    let mut response = String::new();
+                    stream.read_to_string(&mut response)?;
+                    if response.starts_with("HTTP/1.1 204") {
+                        return Ok(());
+                    }
+                    anyhow::bail!("Firecracker rejected VM start: {response}");
+                }
+                thread::sleep(Duration::from_millis(100));
+            }
+            anyhow::bail!("timed out waiting for Firecracker API socket")
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = socket;
+            anyhow::bail!("Firecracker runtime requires a Unix host")
+        }
     }
 
     pub fn stop(pid: u32) -> Result<()> {

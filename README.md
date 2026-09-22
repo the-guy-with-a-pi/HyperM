@@ -38,8 +38,10 @@ sudo ./install.sh
 The installer supports Debian/Ubuntu, Fedora, and Alpine on x86_64 or aarch64 Linux. It
 automatically downloads a Firecracker-compatible kernel to
 `/var/lib/hyperm/vmlinux`. Set `HYPERM_KERNEL_URL` to use a trusted custom
-kernel. A rootfs image is still required at `/var/lib/hyperm/rootfs.ext4` because
-it must contain the guest runtime and application dependencies.
+kernel, or set `HYPERM_KERNEL_RELEASE` and `HYPERM_KERNEL_VERSION` to select a
+different Firecracker CI kernel. It also downloads the official Ubuntu 22.04
+Firecracker CI rootfs to `/var/lib/hyperm/rootfs.ext4`; set `HYPERM_ROOTFS_URL`
+to use a trusted custom rootfs.
 
 ### Manual setup
 
@@ -120,10 +122,9 @@ hyperm stop api
 hyperm delete api
 ```
 
-The command is recorded as guest metadata for the guest launcher. The included
-rootfs must be prepared to read that metadata or start the intended application
-through its init process. HyperM does not claim isolation when Firecracker is
-unavailable.
+The command is recorded as guest metadata for the guest launcher. The default
+rootfs boots the VM, but the guest-agent protocol needed to execute arbitrary
+host application files inside the guest is still under development.
 
 State and per-VM logs are stored under `.hyperm/`; set `HYPERM_HOME` to move them.
 

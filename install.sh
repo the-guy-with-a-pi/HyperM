@@ -3,6 +3,8 @@ set -Eeuo pipefail
 
 FIRECRACKER_VERSION="${FIRECRACKER_VERSION:-1.9.1}"
 KERNEL_VERSION="${HYPERM_KERNEL_VERSION:-5.10.225}"
+KERNEL_RELEASE="${HYPERM_KERNEL_RELEASE:-1.9}"
+ROOTFS_URL="${HYPERM_ROOTFS_URL:-https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v1.9/$(uname -m)/ubuntu-22.04.ext4}"
 REPOSITORY_URL="${HYPERM_REPOSITORY:-https://github.com/the_guy_with_a_pi/HyperM.git}"
 WORK_DIR=""
 
@@ -74,10 +76,13 @@ fi
 install -m 0755 "$firecracker_binary" /usr/local/bin/firecracker
 
 install -d -m 0755 /var/lib/hyperm
-kernel_url="${HYPERM_KERNEL_URL:-https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v${FIRECRACKER_VERSION}/${firecracker_arch}/vmlinux-${KERNEL_VERSION}}"
+kernel_url="${HYPERM_KERNEL_URL:-https://s3.amazonaws.com/spec.ccfc.min/firecracker-ci/v${KERNEL_RELEASE}/${firecracker_arch}/vmlinux-${KERNEL_VERSION}}"
 echo "Installing Firecracker-compatible ${firecracker_arch} kernel..."
 curl --fail --location --retry 3 --output /var/lib/hyperm/vmlinux "$kernel_url"
 chmod 0644 /var/lib/hyperm/vmlinux
+echo "Installing default Ubuntu 22.04 rootfs..."
+curl --fail --location --retry 3 --output /var/lib/hyperm/rootfs.ext4 "$ROOTFS_URL"
+chmod 0644 /var/lib/hyperm/rootfs.ext4
 
 if [[ -f Cargo.toml ]]; then
   source_dir="$PWD"
@@ -102,5 +107,5 @@ hyperm --help >/dev/null
 echo
 echo "HyperM installation complete."
 echo "A compatible kernel was installed at /var/lib/hyperm/vmlinux."
-echo "Place a compatible rootfs at /var/lib/hyperm/rootfs.ext4 before launching an app."
+echo "A default Ubuntu 22.04 rootfs was installed at /var/lib/hyperm/rootfs.ext4."
 echo "Then run: hyperm run app.js --name app --ram 512"
