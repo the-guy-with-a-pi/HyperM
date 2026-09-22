@@ -20,6 +20,28 @@ there natively.
 
 ## Server setup
 
+the one-command installer is:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/the_guy_with_a_pi/HyperM/main/install.sh | sudo bash
+```
+
+It installs the OS build dependencies, Cargo/Rust, Firecracker, and HyperM,
+then creates `/var/lib/hyperm`. Use `sudo FIRECRACKER_VERSION=1.10.0 bash` in
+the pipeline to choose a different Firecracker release. For a local checkout,
+use:
+
+```bash
+sudo ./install.sh
+```
+
+The installer supports Debian/Ubuntu, Fedora, and Alpine on x86_64 Linux. It
+does not download a kernel or rootfs image because those images must be chosen
+for the guest workload and trusted by the operator. Put them at
+`/var/lib/hyperm/vmlinux` and `/var/lib/hyperm/rootfs.ext4` after installation.
+
+### Manual setup
+
 The following example targets Ubuntu or Debian:
 
 ```bash
