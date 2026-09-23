@@ -140,8 +140,9 @@ impl FirecrackerRuntime {
                         "{\"action_type\":\"InstanceStart\"}"
                     );
                     stream.write_all(request.as_bytes())?;
-                    let mut response = String::new();
-                    stream.read_to_string(&mut response)?;
+                    let mut response_bytes = [0_u8; 4096];
+                    let response_size = stream.read(&mut response_bytes)?;
+                    let response = String::from_utf8_lossy(&response_bytes[..response_size]);
                     if response.starts_with("HTTP/1.1 204") {
                         return Ok(());
                     }
