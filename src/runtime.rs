@@ -6,7 +6,7 @@ use std::{
     fs,
     io::ErrorKind,
     path::{Path, PathBuf},
-    process::{Child, Command},
+    process::{Child, Command, Stdio},
 };
 #[cfg(unix)]
 use std::{
@@ -79,6 +79,7 @@ impl FirecrackerRuntime {
             .arg(&socket)
             .arg("--config-file")
             .arg(&config_path)
+            .stdin(Stdio::null())
             .stdout(stdout)
             .stderr(stderr)
             .spawn()
