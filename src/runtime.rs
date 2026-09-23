@@ -4,6 +4,7 @@ use serde_json::json;
 use std::fs::OpenOptions;
 use std::{
     fs,
+    io::ErrorKind,
     path::{Path, PathBuf},
     process::{Child, Command},
 };
@@ -113,11 +114,19 @@ impl FirecrackerRuntime {
         {
             let deadline = Instant::now() + Duration::from_secs(15);
             for _ in 0..50 {
-                if let Some(status) = child.try_wait()? {
-                    let details = fs::read_to_string(stderr_path).unwrap_or_default();
-                    anyhow::bail!(
-                        "Firecracker exited with {status} before opening its API socket: {details}"
-                    );
+                match child.try_wait() {
+                    Ok(Some(status)) => {
+                        let details = fs::read_to_string(stderr_path).unwrap_or_default();
+                        anyhow::bail!(
+                            "Firecracker exited with {status} before opening its API socket: {details}"
+                        );
+                    }
+                    Ok(None) => {}
+                    Err(error) if error.kind() == ErrorKind::WouldBlock => {
+                        thread::sleep(Duration::from_millis(100));
+                        continue;
+                    }
+                    Err(error) => return Err(error.into()),
                 }
                 if let Ok(mut stream) = UnixStream::connect(socket) {
                     stream.set_read_timeout(Some(Duration::from_secs(3)))?;
