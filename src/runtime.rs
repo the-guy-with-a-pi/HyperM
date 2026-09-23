@@ -12,7 +12,7 @@ use std::{
     io::{Read, Write},
     os::unix::net::UnixStream,
     thread,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 pub struct VmResources {
@@ -111,6 +111,7 @@ impl FirecrackerRuntime {
     fn start_instance(socket: &Path, child: &mut Child, stderr_path: &Path) -> Result<()> {
         #[cfg(unix)]
         {
+            let deadline = Instant::now() + Duration::from_secs(15);
             for _ in 0..50 {
                 if let Some(status) = child.try_wait()? {
                     let details = fs::read_to_string(stderr_path).unwrap_or_default();
@@ -119,6 +120,8 @@ impl FirecrackerRuntime {
                     );
                 }
                 if let Ok(mut stream) = UnixStream::connect(socket) {
+                    stream.set_read_timeout(Some(Duration::from_secs(3)))?;
+                    stream.set_write_timeout(Some(Duration::from_secs(3)))?;
                     let request = concat!(
                         "PUT /actions HTTP/1.1\r\n",
                         "Host: localhost\r\n",
@@ -134,6 +137,9 @@ impl FirecrackerRuntime {
                         return Ok(());
                     }
                     anyhow::bail!("Firecracker rejected VM start: {response}");
+                }
+                if Instant::now() >= deadline {
+                    break;
                 }
                 thread::sleep(Duration::from_millis(100));
             }
