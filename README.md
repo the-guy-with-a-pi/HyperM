@@ -1,3 +1,5 @@
+<img width="1280" height="640" alt="logo" src="https://github.com/user-attachments/assets/70104d0d-7008-43d8-b701-e19df57814b2" />
+
 # HyperM
 
 HyperM is an open-source, PM2-style manager for running applications in isolated [Firecracker](https://github.com/firecracker-microvm/firecracker) microVMs. It is written in Rust and keeps the command surface intentionally small.
