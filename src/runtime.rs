@@ -10,8 +10,6 @@ use std::{
 };
 #[cfg(unix)]
 use std::{
-    io::{Read, Write},
-    os::unix::net::UnixStream,
     thread,
     time::{Duration, Instant},
 };
@@ -89,7 +87,7 @@ impl FirecrackerRuntime {
                     launch.firecracker.display()
                 )
             })?;
-        if let Err(error) = Self::start_instance(&socket, &mut child, &stderr_path) {
+        if let Err(error) = Self::wait_for_startup(&socket, &mut child, &stderr_path) {
             let _ = child.kill();
             return Err(error);
         }
@@ -110,7 +108,7 @@ impl FirecrackerRuntime {
         Ok(())
     }
 
-    fn start_instance(socket: &Path, child: &mut Child, stderr_path: &Path) -> Result<()> {
+    fn wait_for_startup(socket: &Path, child: &mut Child, stderr_path: &Path) -> Result<()> {
         #[cfg(unix)]
         {
             let deadline = Instant::now() + Duration::from_secs(15);
@@ -129,25 +127,8 @@ impl FirecrackerRuntime {
                     }
                     Err(error) => return Err(error.into()),
                 }
-                if let Ok(mut stream) = UnixStream::connect(socket) {
-                    stream.set_read_timeout(Some(Duration::from_secs(3)))?;
-                    stream.set_write_timeout(Some(Duration::from_secs(3)))?;
-                    let request = concat!(
-                        "PUT /actions HTTP/1.1\r\n",
-                        "Host: localhost\r\n",
-                        "Content-Type: application/json\r\n",
-                        "Content-Length: 31\r\n",
-                        "Connection: close\r\n\r\n",
-                        "{\"action_type\":\"InstanceStart\"}"
-                    );
-                    stream.write_all(request.as_bytes())?;
-                    let mut response_bytes = [0_u8; 4096];
-                    let response_size = stream.read(&mut response_bytes)?;
-                    let response = String::from_utf8_lossy(&response_bytes[..response_size]);
-                    if response.starts_with("HTTP/1.1 204") {
-                        return Ok(());
-                    }
-                    anyhow::bail!("Firecracker rejected VM start: {response}");
+                if socket.exists() {
+                    return Ok(());
                 }
                 if Instant::now() >= deadline {
                     break;
